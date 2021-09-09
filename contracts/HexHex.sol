@@ -5,38 +5,30 @@ import '@openzeppelin/contracts/utils/Context.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol';
-import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol';
-import '@openzeppelin/contracts/utils/Counters.sol';
 
-contract HexHex is
-    Context,
-    Ownable,
-    ERC721Enumerable,
-    ERC721Pausable,
-    ERC721Burnable
-{
-    using Counters for Counters.Counter;
-
-    Counters.Counter private _nextTokenId;
+contract HexHex is Context, Ownable, ERC721Enumerable, ERC721Burnable {
+    uint256 public nextClaimableTokenId = 1;
+    uint256 public nextMintableTokenId = 8001;
     string private _baseTokenURI;
     address payable private _treasury;
     IERC721 private _loot;
 
+    uint256 public price = 0.02 ether;
+    uint256 public maxSupplyClaimable = 8000;
+    uint256 public maxSupply = 16000;
     bool public isClaimingEnabled;
     mapping(uint256 => bool) public isClaimedByLootId;
     bool public isMintingEnabled;
-    uint256 public price = 0.08 ether;
     uint24[6][] public hexCodes;
 
+    event Claimed(address indexed claimer, uint256 indexed tokenId);
     event Minted(address indexed minter, uint256 indexed tokenId);
 
     constructor(
-        string memory name,
-        string memory symbol,
         string memory baseTokenURI,
         address payable treasury,
         address loot
-    ) ERC721(name, symbol) {
+    ) ERC721('HexHex', 'HEX') {
         _baseTokenURI = baseTokenURI;
         _treasury = treasury;
         _loot = IERC721(loot);
@@ -60,11 +52,21 @@ contract HexHex is
 
     function claim(address to, uint256 lootId) public {
         require(isClaimingEnabled, 'Claiming is not enabled');
-        require(_msgSender() == _loot.ownerOf(lootId), 'Not owner');
+        require(
+            nextClaimableTokenId <= maxSupplyClaimable,
+            'All tokens are claimed'
+        );
+        require(_msgSender() == _loot.ownerOf(lootId), 'Not owner of the loot');
         require(!isClaimedByLootId[lootId], 'Already claimed');
+
         isClaimedByLootId[lootId] = true;
-        _mint(to, _nextTokenId.current());
-        _nextTokenId.increment();
+
+        uint256 newTokenId = nextClaimableTokenId;
+        ++nextClaimableTokenId;
+
+        _mint(to, newTokenId);
+
+        emit Claimed(_msgSender(), newTokenId);
     }
 
     function enableMinting() public onlyOwner {
@@ -75,43 +77,34 @@ contract HexHex is
         isMintingEnabled = false;
     }
 
-    function mint(address to) payable public {
+    function mint(address to) public payable {
         require(isMintingEnabled, 'Minting is not enabled');
-        require(msg.value >= price, 'Value is not enough');
+        require(nextMintableTokenId <= maxSupply, 'All tokens are minted');
+        require(msg.value == price, 'Value is wrong');
 
-        uint256 newTokenId = _nextTokenId.current();
-        _nextTokenId.increment();
+        uint256 newTokenId = nextMintableTokenId;
+        ++nextMintableTokenId;
 
         _mint(to, newTokenId);
         _treasury.transfer(price);
 
-        uint256 refund = msg.value - price;
-        if (refund > 0) {
-            payable(_msgSender()).transfer(refund);
-        }
-
         emit Minted(_msgSender(), newTokenId);
     }
 
+    function withdraw() public onlyOwner {
+        _treasury.transfer(address(this).balance);
+    }
+
     // Store hex codes on chain
-    // TODO: Generate on-chain would be better?
     function setHexCodes(uint24[6][] memory hexCodes_) public onlyOwner {
         hexCodes = hexCodes_;
-    }
-
-    function pauseTransfer() public onlyOwner {
-        _pause();
-    }
-
-    function unpauseTransfer() public onlyOwner {
-        _unpause();
     }
 
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256 tokenId
-    ) internal override(ERC721, ERC721Enumerable, ERC721Pausable) {
+    ) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId);
     }
 
