@@ -52,7 +52,7 @@ describe('HexHex', function () {
         .withArgs(claimer.address, nextClaimableTokenId);
     });
 
-    it('Should revert if claiming is not enable', async function () {
+    it('Should revert if claiming is not enabled', async function () {
       await expect(
         hexHex.connect(claimer).claim(claimer.address, claimedLootIds[0]),
       ).to.be.revertedWith('Claiming is not enabled');
@@ -91,7 +91,15 @@ describe('HexHex', function () {
         .withArgs(minter.address, nextMintableTokenId);
     });
 
-    it('Should revert if minting is not enable', async function () {
+    it('Should transfer value to the treasury', async function () {
+      const price = await hexHex.price();
+      await hexHex.connect(admin).enableMinting();
+      await expect(
+        await hexHex.connect(minter).mint(minter.address, { value: price }),
+      ).to.changeEtherBalances([treasury, minter], [price, price.mul(-1)]);
+    });
+
+    it('Should revert if minting is not enabled', async function () {
       const price = await hexHex.price();
       await expect(
         hexHex.connect(minter).mint(minter.address, { value: price }),
