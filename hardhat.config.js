@@ -34,18 +34,18 @@ module.exports = {
     hardhat: {
       initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
     },
-    // mainnet: {
-    //   url: process.env.MAINNET_RPC_URL,
-    //   accounts: {
-    //     mnemonic: process.env.MNEMONIC,
-    //   },
-    // },
-    // rinkeby: {
-    //   url: process.env.RINKEBY_RPC_URL,
-    //   accounts: {
-    //     mnemonic: process.env.MNEMONIC,
-    //   },
-    // },
+    mainnet: {
+      url: process.env.MAINNET_RPC_URL,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
+    rinkeby: {
+      url: process.env.RINKEBY_RPC_URL,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
   },
   mocha: {
     timeout: 180000,

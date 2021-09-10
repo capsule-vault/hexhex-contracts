@@ -16,16 +16,12 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const HexHex = await hre.ethers.getContractFactory('HexHex');
-  const hexHex = await HexHex.deploy(
-    process.env.BASE_TOKEN_URI,
-    process.env.TREASURY_ADDRESS,
-    process.env.LOOT_ADDRESS,
-  );
+  const Loot = await hre.ethers.getContractFactory('Loot');
+  const loot = await Loot.deploy();
 
-  await hexHex.deployed();
+  await loot.deployed();
 
-  console.log('HexHex deployed to:', hexHex.address);
+  console.log('Loot deployed to:', loot.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
