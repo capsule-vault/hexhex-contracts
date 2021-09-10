@@ -82,13 +82,16 @@ describe('HexHex', function () {
   describe('mint', function () {
     it('Should emit Minted event', async function () {
       const price = await hexHex.price();
-      const nextMintableTokenId = await hexHex.nextMintableTokenId();
+      let nextMintableTokenId = await hexHex.nextMintableTokenId();
       await hexHex.connect(admin).enableMinting();
       await expect(
         hexHex.connect(minter).mint(minter.address, { value: price }),
       )
         .to.emit(hexHex, 'Minted')
         .withArgs(minter.address, nextMintableTokenId);
+      const lastMintableTokenId = nextMintableTokenId;
+      nextMintableTokenId = await hexHex.nextMintableTokenId();
+      await expect(nextMintableTokenId).eq(lastMintableTokenId.add(1));
     });
 
     it('Should transfer value to the treasury', async function () {
@@ -109,6 +112,24 @@ describe('HexHex', function () {
       await expect(
         hexHex.connect(minter).mint(minter.address, { value: price }),
       ).to.be.revertedWith('Minting is not enabled');
+    });
+
+    // This test takes over 1 min to run
+    it('Should revert if all tokens are minted', async function () {
+      const price = await hexHex.price();
+      const maxSupply = await hexHex.maxSupply();
+      const maxSupplyClaimable = await hexHex.maxSupplyClaimable();
+      await hexHex.connect(admin).enableMinting();
+      await Promise.all(
+        new Array(maxSupply.sub(maxSupplyClaimable).toNumber())
+          .fill(null)
+          .map(() =>
+            hexHex.connect(minter).mint(minter.address, { value: price }),
+          ),
+      );
+      await expect(
+        hexHex.connect(minter).mint(minter.address, { value: price }),
+      ).to.be.revertedWith('All tokens are minted');
     });
 
     it('Should revert if value is wrong', async function () {
