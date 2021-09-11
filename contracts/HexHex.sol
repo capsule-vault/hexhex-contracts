@@ -7,8 +7,8 @@ import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
 import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol';
 
 contract HexHex is Context, Ownable, ERC721Enumerable, ERC721Burnable {
-    uint256 public nextClaimableTokenId = 0;
-    uint256 public nextMintableTokenId = 8000;
+    uint256 public nextClaimableTokenId = 1;
+    uint256 public nextMintableTokenId = 8001;
     string private _baseTokenURI;
     address payable private _treasury;
     IERC721 private _loot;
@@ -53,7 +53,7 @@ contract HexHex is Context, Ownable, ERC721Enumerable, ERC721Burnable {
     function claim(address to, uint256 lootId) public {
         require(isClaimingEnabled, 'Claiming is not enabled');
         require(
-            nextClaimableTokenId < maxSupplyClaimable,
+            nextClaimableTokenId <= maxSupplyClaimable,
             'All tokens are claimed'
         );
         require(_msgSender() == _loot.ownerOf(lootId), 'Not owner of the loot');
@@ -79,7 +79,7 @@ contract HexHex is Context, Ownable, ERC721Enumerable, ERC721Burnable {
 
     function mint(address to) public payable {
         require(isMintingEnabled, 'Minting is not enabled');
-        require(nextMintableTokenId < maxSupply, 'All tokens are minted');
+        require(nextMintableTokenId <= maxSupply, 'All tokens are minted');
         require(msg.value == price, 'Value is wrong');
 
         uint256 newTokenId = nextMintableTokenId;
